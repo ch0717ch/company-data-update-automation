@@ -1,5 +1,6 @@
+<img width="1642" height="801" alt="image" src="https://github.com/user-attachments/assets/a0f35aa3-639f-470a-8d2a-7c2a6dfd619b" />
 <img width="1550" height="765" alt="image" src="https://github.com/user-attachments/assets/9dca6f9e-87d3-4fa8-990d-a52ac76cd559" />
-![Uploading image.png…]()
+
 
 # Company Data Update Automation
 ### 기업 데이터 자동 갱신 및 비교 시스템
