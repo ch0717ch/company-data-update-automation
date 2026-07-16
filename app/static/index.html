@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>하이서울기업 데이터 관리자</title>
+  <link rel="stylesheet" href="/static/styles.css?v=1.2.0">
+  <script src="/static/app.js?v=1.2.0" defer></script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="하이서울기업 데이터 관리자 홈">
+        <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span>
+          <strong>기업 데이터 허브</strong>
+          <small>Hi Seoul Company Manager</small>
+        </span>
+      </a>
+      <div class="topbar-actions">
+        <span class="connection-pill" id="connectionPill"><i></i><span>로컬 서버 확인 중</span></span>
+        <a class="source-link" href="https://hiseoul.sba.kr/Pages/AccountList.aspx" target="_blank" rel="noreferrer">
+          원본 사이트 <span aria-hidden="true">↗</span>
+        </a>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero" aria-labelledby="pageTitle">
+        <div class="hero-copy">
+          <p class="eyebrow">LOCAL COMPANY INTELLIGENCE</p>
+          <h1 id="pageTitle">기업 정보를 찾고,<br><em>변화를 놓치지 마세요.</em></h1>
+          <p>하이서울기업의 최신 정보를 조회해 로컬 데이터베이스에 저장하고, 이전 값과 달라진 항목을 바로 확인합니다.</p>
+        </div>
+        <form id="sourceSearchForm" class="source-search">
+          <label for="sourceQuery">하이서울기업 원본 검색</label>
+          <div class="search-control">
+            <span class="search-icon" aria-hidden="true"></span>
+            <input id="sourceQuery" name="query" type="search" placeholder="기업명을 입력하세요. 예: 360퍼스펙티브" autocomplete="off" maxlength="200" required>
+            <button id="sourceSearchButton" class="button button-primary" type="submit">
+              <span class="button-label">검색 · 동기화</span>
+              <span class="button-loader" aria-hidden="true"></span>
+            </button>
+          </div>
+          <p class="search-help"><span aria-hidden="true">●</span> 목록 조회 후 상세 정보까지 자동 수집해 SQLite에 비교 저장합니다.</p>
+        </form>
+      </section>
+
+      <section class="stats-grid" aria-label="데이터 요약">
+        <article class="stat-card stat-total">
+          <div class="stat-icon" aria-hidden="true">▦</div>
+          <div><span>저장된 기업</span><strong id="statTotal">0</strong><small>개</small></div>
+        </article>
+        <article class="stat-card stat-change">
+          <div class="stat-icon" aria-hidden="true">↻</div>
+          <div><span>변경 이력 기업</span><strong id="statChanged">0</strong><small>개</small></div>
+        </article>
+        <article class="stat-card stat-new">
+          <div class="stat-icon" aria-hidden="true">＋</div>
+          <div><span>최근 신규</span><strong id="statNew">0</strong><small>개</small></div>
+        </article>
+        <article class="stat-card stat-sync">
+          <div class="stat-icon" aria-hidden="true">◷</div>
+          <div><span>마지막 동기화</span><strong id="statLastSync" class="stat-date">—</strong><small id="statLastSyncDetail">아직 동기화하지 않았습니다</small></div>
+        </article>
+      </section>
+
+      <section class="bulk-section" id="bulkSection" aria-labelledby="bulkTitle">
+        <div class="bulk-card">
+          <div class="bulk-copy">
+            <p class="section-kicker">ONE-CLICK BULK IMPORT</p>
+            <h2 id="bulkTitle">기업명 대량추가</h2>
+            <p>엑셀의 기업명 열을 그대로 복사해 붙여넣으세요. 전체 목록을 한 번만 조회해 이름을 매칭하고, 상세정보를 자동 수집합니다.</p>
+            <ul>
+              <li><strong>㈜ · (주) · 주식회사</strong> 표기 차이 자동 처리</li>
+              <li>중복 기업명 자동 제거</li>
+              <li>1,000개 이상도 백그라운드 처리</li>
+            </ul>
+          </div>
+          <div class="bulk-input-panel">
+            <div class="bulk-input-head">
+              <label for="bulkNames">기업명 목록 <strong id="bulkInputCount">0개</strong></label>
+              <button id="loadDefaultNamesButton" class="text-button" type="button">제공된 기업 목록 불러오기</button>
+            </div>
+            <textarea id="bulkNames" rows="9" placeholder="엑셀에서 기업명 열을 복사한 뒤 여기에 붙여넣으세요.&#10;&#10;예시&#10;㈜맥파이테크&#10;㈜엘브이이코리아&#10;㈜360퍼스펙티브"></textarea>
+            <div class="bulk-options">
+              <label class="check-field"><input id="bulkSyncAll" type="checkbox"><span></span> 입력 목록 대신 하이서울 전체 기업 자동 수집</label>
+              <button id="bulkStartButton" class="button button-bulk" type="button"><span aria-hidden="true">＋</span> 원클릭 대량추가</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="bulk-progress" id="bulkProgress" hidden>
+          <div class="bulk-progress-head">
+            <div>
+              <span id="bulkStatusLabel">대량추가 준비 중</span>
+              <strong id="bulkProgressMessage">원본 사이트에 연결하고 있습니다.</strong>
+            </div>
+            <b id="bulkProgressPercent">0%</b>
+          </div>
+          <div class="progress-track"><i id="bulkProgressBar"></i></div>
+          <div class="bulk-progress-counts" id="bulkProgressCounts">
+            <span>요청 <strong id="bulkRequestedCount">0</strong></span>
+            <span>매칭 <strong id="bulkMatchedCount">0</strong></span>
+            <span>미매칭 <strong id="bulkUnmatchedCount">0</strong></span>
+            <span>신규 저장 <strong id="bulkNewCount">0</strong></span>
+          </div>
+          <div class="bulk-result-actions" id="bulkResultActions" hidden>
+            <button class="button button-secondary" id="downloadUnmatchedButton" type="button">미매칭 목록 받기</button>
+            <button class="button button-accent" id="bulkExcelButton" type="button">전체 상세정보 엑셀</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="workspace" aria-labelledby="resultTitle">
+        <div class="workspace-head">
+          <div>
+            <p class="section-kicker">LOCAL DATABASE</p>
+            <h2 id="resultTitle">기업 데이터</h2>
+            <p><strong id="resultCount">0</strong>개의 기업이 조건에 맞습니다.</p>
+          </div>
+          <div class="export-actions">
+            <button class="button button-secondary" id="databaseFolderButton" type="button"><span aria-hidden="true">▣</span> DB 폴더</button>
+            <button class="button button-secondary" id="databaseDownloadButton" type="button"><span aria-hidden="true">↓</span> SQLite DB</button>
+            <button class="button button-secondary" id="exportAllButton" type="button"><span aria-hidden="true">↓</span> 전체 결과 엑셀</button>
+            <button class="button button-accent" id="exportChangedButton" type="button"><span aria-hidden="true">↓</span> 변경 결과 엑셀</button>
+          </div>
+        </div>
+
+        <form class="filter-panel" id="filterForm">
+          <div class="filter-grid">
+            <label class="field field-wide">
+              <span>통합 검색</span>
+              <div class="input-with-icon"><i class="search-icon" aria-hidden="true"></i><input id="filterQ" name="q" type="search" placeholder="기업명, 대표자, 전화, 이메일, 주소"></div>
+            </label>
+            <label class="field">
+              <span>업종</span>
+              <select id="filterIndustry" name="industry"><option value="">전체 업종</option></select>
+            </label>
+            <label class="field">
+              <span>대표자</span>
+              <input id="filterRepresentative" name="representative" type="text" placeholder="대표자명">
+            </label>
+            <label class="field">
+              <span>지역·주소</span>
+              <input id="filterAddress" name="address" type="text" placeholder="예: 강남구">
+            </label>
+            <label class="field field-range">
+              <span>설립연도</span>
+              <div><input id="filterFoundedFrom" name="founded_from" type="number" min="1900" max="2100" placeholder="시작"><b>—</b><input id="filterFoundedTo" name="founded_to" type="number" min="1900" max="2100" placeholder="종료"></div>
+            </label>
+            <label class="field field-range">
+              <span>직원 수</span>
+              <div><input id="filterEmployeesMin" name="employees_min" type="number" min="0" placeholder="최소"><b>—</b><input id="filterEmployeesMax" name="employees_max" type="number" min="0" placeholder="최대"></div>
+            </label>
+            <label class="field">
+              <span>최근 상태</span>
+              <select id="filterStatus" name="status">
+                <option value="">전체 상태</option>
+                <option value="new">신규</option>
+                <option value="changed">변경</option>
+                <option value="unchanged">기존</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>정렬</span>
+              <select id="filterSort" name="sort">
+                <option value="name">기업명 가나다순</option>
+                <option value="-last_seen_at">최근 확인순</option>
+                <option value="-last_changed_at">최근 변경순</option>
+                <option value="-employee_count">직원 수 많은순</option>
+                <option value="-founded_year">설립연도 최신순</option>
+              </select>
+            </label>
+          </div>
+          <div class="filter-footer">
+            <label class="check-field"><input id="filterChangedOnly" name="changed_only" type="checkbox"><span></span> 변경 이력이 있는 기업만</label>
+            <div>
+              <button class="button button-ghost" id="filterResetButton" type="button">초기화</button>
+              <button class="button button-dark" type="submit">필터 적용</button>
+            </div>
+          </div>
+        </form>
+
+        <div class="table-card">
+          <div class="table-legend">
+            <span><i class="legend-new"></i> 신규 저장</span>
+            <span><i class="legend-changed"></i> 이번 동기화에서 변경</span>
+            <span class="legend-note">변경된 셀에 마우스를 올리면 이전 값을 볼 수 있습니다.</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>상태</th><th>기업명</th><th>업종</th><th>대표자</th><th>설립</th><th>직원</th><th>전화번호</th><th>주소</th><th>이메일</th><th class="table-actions-head">상세</th>
+                </tr>
+              </thead>
+              <tbody id="companyTableBody"></tbody>
+            </table>
+            <div class="empty-state" id="emptyState" hidden>
+              <span aria-hidden="true">⌕</span>
+              <h3>표시할 기업이 없습니다</h3>
+              <p>위 검색창에서 기업명을 조회하거나 필터 조건을 바꿔보세요.</p>
+            </div>
+          </div>
+          <div class="pagination" id="pagination" hidden>
+            <button id="prevPageButton" type="button" aria-label="이전 페이지">‹</button>
+            <span id="pageInfo">1 / 1</span>
+            <button id="nextPageButton" type="button" aria-label="다음 페이지">›</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <span>데이터는 이 PC의 SQLite 파일에만 저장됩니다.</span>
+      <span>Source: <a href="https://hiseoul.sba.kr/Pages/AccountList.aspx" target="_blank" rel="noreferrer">하이서울기업</a></span>
+    </footer>
+  </div>
+
+  <dialog id="detailDialog" class="detail-dialog">
+    <div class="dialog-shell">
+      <button class="dialog-close" id="dialogCloseButton" type="button" aria-label="닫기">×</button>
+      <div id="detailContent" class="detail-content"></div>
+    </div>
+  </dialog>
+
+  <div class="toast-region" id="toastRegion" aria-live="polite"></div>
+  <div class="loading-bar" id="loadingBar" aria-hidden="true"></div>
+</body>
+</html>
