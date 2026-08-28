@@ -9,6 +9,45 @@
 
 > *A FastAPI-based local web application developed to automate repetitive company data synchronization tasks during an internship.*
 
+<div align="center">
+
+![](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)
+![](https://img.shields.io/badge/SQLite-003B57?style=for-the-badge&logo=sqlite&logoColor=white)
+![](https://img.shields.io/badge/OpenPyXL-217346?style=for-the-badge&logo=microsoftexcel&logoColor=white)
+
+![](https://img.shields.io/badge/처리_기업-1%2C107개-C9A227?style=flat-square)
+![](https://img.shields.io/badge/자동_매칭-1%2C056개-8A6D14?style=flat-square)
+![](https://img.shields.io/badge/업무시간-2주_→_2시간-0B0B0C?style=flat-square)
+![](https://img.shields.io/github/last-commit/ch0717ch/company-data-update-automation?style=flat-square&color=C9A227&label=최근%20작업)
+
+</div>
+
+---
+
+## 🔄 동작 흐름
+
+```mermaid
+flowchart TD
+    A[기업명 대량 등록<br/>1,107개] --> B[하이서울기업 API 조회]
+    B --> C{기존 데이터와 비교}
+    C -->|신규| D[(SQLite 저장)]
+    C -->|변경 있음| E[필드 단위 변경 이력 기록]
+    C -->|동일| F[건너뜀]
+    E --> D
+    D --> G[Excel 출력<br/>변경분 · 전체]
+
+    style A fill:#3776AB,color:#fff
+    style B fill:#009688,color:#fff
+    style C fill:#C9A227,color:#0B0B0C
+    style D fill:#003B57,color:#fff
+    style E fill:#8A6D14,color:#fff
+    style G fill:#217346,color:#fff
+```
+
+사람이 하던 판단은 **"이 기업 정보가 지난번과 달라졌는가"** 하나였습니다.
+그 비교를 필드 단위로 자동화하고, 달라진 것만 뽑아 보여주는 게 이 도구의 핵심입니다.
+
 ---
 
 ## 📌 프로젝트 배경
